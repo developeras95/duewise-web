@@ -38,13 +38,15 @@ export function useClients(params: ClientListParams) {
   });
 }
 
-export function useClient(id: number) {
+/** One client; pass enabled=false to skip the request, e.g. while no client is chosen. */
+export function useClient(id: number, enabled = true) {
   return useQuery({
     queryKey: clientKeys.detail(id),
     queryFn: async () => {
       const { data } = await api.GET('/api/v1/clients/{id}', { params: { path: { id } } });
       return data!;
     },
+    enabled: enabled && id > 0,
   });
 }
 

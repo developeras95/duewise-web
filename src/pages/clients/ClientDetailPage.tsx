@@ -8,7 +8,9 @@ import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/EditOutlined';
+import InvoiceIcon from '@mui/icons-material/ReceiptLongOutlined';
 import { useClient, type Client } from '../../api/clients';
 import { ErrorState } from '../../components/ErrorState';
 import { PageHeader } from '../../components/PageHeader';
@@ -81,9 +83,27 @@ export function ClientDetailPage() {
         title={client.data?.name ?? 'Client'}
         actions={
           client.data && (
-            <Button variant="outlined" startIcon={<EditIcon />} component={RouterLink} to={`/clients/${id}/edit`}>
-              Edit
-            </Button>
+            <>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                component={RouterLink}
+                to={`/invoices/new?clientId=${id}`}
+              >
+                New invoice
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<InvoiceIcon />}
+                component={RouterLink}
+                to={`/invoices?clientId=${id}`}
+              >
+                Invoices
+              </Button>
+              <Button variant="outlined" startIcon={<EditIcon />} component={RouterLink} to={`/clients/${id}/edit`}>
+                Edit
+              </Button>
+            </>
           )
         }
       />

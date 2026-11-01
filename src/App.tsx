@@ -16,6 +16,17 @@ const EditClientPage = lazy(() =>
   import('./pages/clients/ClientFormPage').then((m) => ({ default: m.EditClientPage })),
 );
 
+const InvoicesPage = lazy(() => import('./pages/invoices/InvoicesPage').then((m) => ({ default: m.InvoicesPage })));
+const InvoiceDetailPage = lazy(() =>
+  import('./pages/invoices/InvoiceDetailPage').then((m) => ({ default: m.InvoiceDetailPage })),
+);
+const NewInvoicePage = lazy(() =>
+  import('./pages/invoices/InvoiceFormPage').then((m) => ({ default: m.NewInvoicePage })),
+);
+const EditInvoicePage = lazy(() =>
+  import('./pages/invoices/InvoiceFormPage').then((m) => ({ default: m.EditInvoicePage })),
+);
+
 /** Every page of the app, inside the shared layout. */
 export function App() {
   return (
@@ -28,15 +39,12 @@ export function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route
-          path="invoices/*"
-          element={
-            <ComingSoonPage
-              title="Invoices"
-              description="Invoice list with filters and paging, invoice details and PDF, drafts with line items, sending, voiding and recording payments."
-            />
-          }
-        />
+        <Route path="invoices">
+          <Route index element={<InvoicesPage />} />
+          <Route path="new" element={<NewInvoicePage />} />
+          <Route path=":id" element={<InvoiceDetailPage />} />
+          <Route path=":id/edit" element={<EditInvoicePage />} />
+        </Route>
         <Route path="clients">
           <Route index element={<ClientsPage />} />
           <Route path="new" element={<NewClientPage />} />
