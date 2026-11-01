@@ -9,8 +9,8 @@ The web app for [Duewise](https://github.com/developeras95/duewise-invoicing-api
 for freelancers and small businesses: clients, invoices with line items and PDF, payments, client
 statements and overdue reminders.
 
-> Work in progress: the app shell, API client and Docker setup are ready; the screens for clients,
-> invoices, payments and reminders are being added.
+> Work in progress. Ready: the app shell, and clients (search, add and edit, each client's statement
+> with aging buckets). Being added: invoices, payments, reminders and settings.
 
 ## Run everything with Docker
 

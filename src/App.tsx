@@ -1,14 +1,32 @@
+import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
+import LinearProgress from '@mui/material/LinearProgress';
 import { AppLayout } from './components/AppLayout';
 import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
+// Larger screens are loaded when first opened, so the first visit downloads only what it shows.
+const ClientsPage = lazy(() => import('./pages/clients/ClientsPage').then((m) => ({ default: m.ClientsPage })));
+const ClientDetailPage = lazy(() =>
+  import('./pages/clients/ClientDetailPage').then((m) => ({ default: m.ClientDetailPage })),
+);
+const NewClientPage = lazy(() => import('./pages/clients/ClientFormPage').then((m) => ({ default: m.NewClientPage })));
+const EditClientPage = lazy(() =>
+  import('./pages/clients/ClientFormPage').then((m) => ({ default: m.EditClientPage })),
+);
+
 /** Every page of the app, inside the shared layout. */
 export function App() {
   return (
     <Routes>
-      <Route element={<AppLayout />}>
+      <Route
+        element={
+          <Suspense fallback={<LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0 }} />}>
+            <AppLayout />
+          </Suspense>
+        }
+      >
         <Route index element={<DashboardPage />} />
         <Route
           path="invoices/*"
@@ -19,15 +37,12 @@ export function App() {
             />
           }
         />
-        <Route
-          path="clients/*"
-          element={
-            <ComingSoonPage
-              title="Clients"
-              description="Client search and list, adding and editing clients, and each client's statement with aging buckets."
-            />
-          }
-        />
+        <Route path="clients">
+          <Route index element={<ClientsPage />} />
+          <Route path="new" element={<NewClientPage />} />
+          <Route path=":id" element={<ClientDetailPage />} />
+          <Route path=":id/edit" element={<EditClientPage />} />
+        </Route>
         <Route
           path="reminders"
           element={

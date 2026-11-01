@@ -1,14 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { App } from './App';
 import { renderWithProviders } from './test/render';
+import { server } from './test/server';
 
 describe('App', () => {
   it('shows the navigation and the dashboard with the API status', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ status: 'UP', components: { db: { status: 'UP' }, mail: { status: 'UP' } } }), {
-        status: 200,
-      }),
+    server.use(
+      http.get('*/actuator/health', () =>
+        HttpResponse.json({ status: 'UP', components: { db: { status: 'UP' }, mail: { status: 'UP' } } }),
+      ),
     );
 
     renderWithProviders(<App />);
@@ -22,7 +24,7 @@ describe('App', () => {
   });
 
   it('says when the API cannot be reached', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+    server.use(http.get('*/actuator/health', () => HttpResponse.error()));
 
     renderWithProviders(<App />);
 

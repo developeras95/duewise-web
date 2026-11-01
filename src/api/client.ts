@@ -81,5 +81,10 @@ const throwOnError: Middleware = {
  * Requests go to the same origin as the page ("/api/..."): in development Vite forwards them
  * to the API, in Docker nginx does, so the browser never needs CORS.
  */
-export const api = createClient<paths>({ baseUrl: '' });
+export const api = createClient<paths>({
+  baseUrl: globalThis.location?.origin ?? '',
+  // Look fetch up on every call rather than once at start-up, so anything that wraps it later
+  // (request timing, or the mock API in tests) sees every request.
+  fetch: (request) => globalThis.fetch(request),
+});
 api.use(throwOnError);

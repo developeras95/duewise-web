@@ -13,16 +13,10 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     build: {
-      rollupOptions: {
-        output: {
-          // Libraries change less often than the app: separate files stay cached between releases.
-          manualChunks: {
-            react: ['react', 'react-dom', 'react-router'],
-            mui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-            data: ['@tanstack/react-query', 'openapi-fetch'],
-          },
-        },
-      },
+      // Pages are loaded on demand (see App.tsx), and Vite splits shared libraries into their own
+      // files automatically. MUI's data grid is the largest (~750 kB, 230 kB compressed) and is
+      // loaded only by pages with tables.
+      chunkSizeWarningLimit: 800,
     },
     server: {
       port: 5173,
@@ -35,6 +29,7 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: 'jsdom',
+      environmentOptions: { jsdom: { url: 'http://localhost:3000/' } },
       setupFiles: ['./src/test/setup.ts'],
       css: false,
       coverage: { include: ['src/**/*.{ts,tsx}'], exclude: ['src/api/schema.d.ts', 'src/main.tsx'] },

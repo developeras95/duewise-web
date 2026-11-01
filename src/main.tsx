@@ -7,6 +7,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { App } from './App';
+import { NotificationProvider } from './components/Notifications';
 import { queryClient } from './api/queryClient';
 import { theme } from './theme';
 
@@ -16,9 +17,11 @@ createRoot(document.getElementById('root')!).render(
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <NotificationProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </NotificationProvider>
         </QueryClientProvider>
       </LocalizationProvider>
     </ThemeProvider>
