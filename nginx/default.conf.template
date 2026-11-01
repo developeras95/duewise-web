@@ -1,0 +1,54 @@
+# nginx inside the duewise-web image. Serves the built React app and forwards API calls to Duewise,
+# so the browser sees one address and the API needs no CORS settings.
+#
+# Filled in when the container starts (nginx's envsubst templates):
+#   DUEWISE_API_URL  where Duewise runs, e.g. http://app:8080 (the compose service name)
+#   NGINX_RESOLVER   DNS server used to find it; 127.0.0.11 is Docker's own
+
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # Look the API's address up at request time, not only at start-up: the web container then starts
+    # even while Duewise is still booting, and keeps working when Duewise is recreated with a new IP.
+    resolver ${NGINX_RESOLVER} valid=10s ipv6=off;
+    set $duewise_api ${DUEWISE_API_URL};
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1024;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options "DENY" always;
+
+    # Duewise: the API, its health check, and Swagger UI with the OpenAPI document behind it.
+    location ~ ^/(api/|actuator/|v3/api-docs|swagger-ui) {
+        proxy_pass $duewise_api;
+        # $http_host keeps the port (localhost:3000), so links Duewise builds, e.g. Swagger's
+        # "Try it out" address, point back here.
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_read_timeout 120s;
+        client_max_body_size 2m;
+    }
+
+    # Built files have a content hash in their name, so they can be cached for a year.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # Everything else is a page of the app: let React Router handle the address.
+    location / {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header X-Frame-Options "DENY" always;
+        try_files $uri /index.html;
+    }
+}

@@ -1,0 +1,78 @@
+# The whole of Duewise on your computer: database, API, email catcher and this web app.
+#
+#   docker compose up -d --build    build the web app and start everything
+#   open http://localhost:3000      the app      (Swagger UI: http://localhost:3000/swagger-ui.html)
+#                                                 (emails:     http://localhost:8026)
+#   docker compose down             stop, keep the data
+#   docker compose down -v          stop and delete the database
+#
+# The API is the released Duewise image from GitHub's container registry; DUEWISE_VERSION picks
+# which one. Settings (ports, real email, another database) go in a .env file next to this one:
+# see .env.example.
+name: duewise-web
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: duewise
+      POSTGRES_USER: duewise
+      POSTGRES_PASSWORD: duewise
+    volumes:
+      - duewise-web-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U duewise -d duewise']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Catches every email Duewise sends. Inbox: http://localhost:8026 (8026, not 8025, so it does
+  # not clash with the Mailpit of Duewise's own compose)
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '${MAILPIT_PORT:-8026}:8025'
+
+  app:
+    image: ghcr.io/developeras95/duewise-invoicing-api:${DUEWISE_VERSION:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/duewise}
+      DB_USERNAME: ${DB_USERNAME:-duewise}
+      DB_PASSWORD: ${DB_PASSWORD:-duewise}
+      # Only for a database whose tables were created without Flyway (see .env.example).
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:-false}
+      SPRING_FLYWAY_BASELINE_VERSION: ${SPRING_FLYWAY_BASELINE_VERSION:-1}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-false}
+      MAIL_FROM: '${MAIL_FROM:-Duewise <billing@duewise.local>}'
+      BUSINESS_EMAIL: ${BUSINESS_EMAIL:-}
+    # The browser reaches the API through the web app on port 3000. It is also published on
+    # 8090 (only on this computer) for Postman or curl; 8090, not 8080, so it does not clash with a
+    # Duewise you run from IntelliJ.
+    ports:
+      - '127.0.0.1:${API_PORT:-8090}:8080'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  web:
+    build: .
+    image: duewise-web:local
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      DUEWISE_API_URL: http://app:8080
+    ports:
+      - '${WEB_PORT:-3000}:8080'
+
+volumes:
+  duewise-web-pgdata:
