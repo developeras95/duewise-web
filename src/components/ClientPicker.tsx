@@ -61,6 +61,9 @@ export function ClientPicker({
       options={value && !options.some((option) => option.id === value.id) ? [value, ...options] : options}
       filterOptions={(all) => all} // Duewise already filtered them
       getOptionLabel={(option) => option.name}
+      // Names repeat (two clients can both be "Bluebird Agro Co"), so rows are keyed by id. Keyed by
+      // name, React mixed up the rows and kept showing the old list after a new search.
+      getOptionKey={(option) => option.id}
       isOptionEqualToValue={(option, selected) => option.id === selected.id}
       loading={clients.isFetching}
       disabled={disabled}

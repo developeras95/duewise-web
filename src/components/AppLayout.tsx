@@ -21,6 +21,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LightIcon from '@mui/icons-material/LightModeOutlined';
 import DarkIcon from '@mui/icons-material/DarkModeOutlined';
 import { Logo } from './Logo';
+import { RequestTimingBadge } from './RequestTimingBadge';
 
 const DRAWER_WIDTH = 232;
 
@@ -108,6 +109,7 @@ export function AppLayout() {
           <Typography variant="h6" component="span" sx={{ ml: 1, fontWeight: 700, flexGrow: 1 }}>
             Duewise
           </Typography>
+          <RequestTimingBadge />
           <ColorSchemeToggle />
         </Toolbar>
       </AppBar>

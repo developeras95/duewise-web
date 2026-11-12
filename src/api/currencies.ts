@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 import type { components } from './schema';
 
@@ -26,4 +26,29 @@ export function useMinorUnits() {
     }
   }
   return map;
+}
+
+export type CreateCurrencyRequest = components['schemas']['CreateCurrencyRequest'];
+export type UpdateCurrencyRequest = components['schemas']['UpdateCurrencyRequest'];
+
+export function useCreateCurrency() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: CreateCurrencyRequest) => {
+      const { data } = await api.POST('/api/v1/currencies', { body });
+      return data!;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['currencies'] }),
+  });
+}
+
+export function useUpdateCurrency() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ code, ...body }: UpdateCurrencyRequest & { code: string }) => {
+      const { data } = await api.PATCH('/api/v1/currencies/{code}', { params: { path: { code } }, body });
+      return data!;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['currencies'] }),
+  });
 }

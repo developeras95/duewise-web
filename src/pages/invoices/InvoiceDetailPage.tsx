@@ -4,9 +4,11 @@ import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import IconButton from '@mui/material/IconButton';
 import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
@@ -22,16 +24,19 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import DownloadIcon from '@mui/icons-material/FileDownloadOutlined';
 import EditIcon from '@mui/icons-material/EditOutlined';
+import EmailIcon from '@mui/icons-material/EmailOutlined';
 import PaymentIcon from '@mui/icons-material/PaymentsOutlined';
 import PreviewIcon from '@mui/icons-material/VisibilityOutlined';
 import SendIcon from '@mui/icons-material/SendOutlined';
 import VoidIcon from '@mui/icons-material/BlockOutlined';
+import { useClient } from '../../api/clients';
 import { useMinorUnits } from '../../api/currencies';
 import {
   pdfUrl,
   useDeleteInvoice,
   useInvoice,
   usePayments,
+  useEmailInvoice,
   useSendInvoice,
   useVoidInvoice,
   type Invoice,
@@ -42,9 +47,10 @@ import { useNotify } from '../../components/Notifications';
 import { PageHeader } from '../../components/PageHeader';
 import { formatDate, formatDateTime, formatMoney } from '../../lib/format';
 import { invoiceLabel } from '../../lib/invoiceLabels';
-import { ConfirmDialog, RecordPaymentDialog, VoidDialog } from './InvoiceDialogs';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { RecordPaymentDialog, VoidDialog } from './InvoiceDialogs';
 
-type OpenDialog = 'send' | 'delete' | 'void' | 'payment' | 'pdf' | null;
+type OpenDialog = 'send' | 'email' | 'delete' | 'void' | 'payment' | 'pdf' | null;
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -196,6 +202,7 @@ function Payments({ invoice, minorUnits }: { invoice: Invoice; minorUnits?: numb
 function Actions({ invoice, open }: { invoice: Invoice; open: (dialog: OpenDialog) => void }) {
   const status = invoice.status;
   const canPay = status === 'SENT' || status === 'PARTIALLY_PAID';
+  const canEmail = canPay || status === 'PAID';
   const fileName = `${invoiceLabel(invoice).replace(' ', '-').toLowerCase()}.pdf`;
 
   return (
@@ -218,6 +225,11 @@ function Actions({ invoice, open }: { invoice: Invoice; open: (dialog: OpenDialo
       {canPay && (
         <Button variant="contained" startIcon={<PaymentIcon />} onClick={() => open('payment')}>
           Record payment
+        </Button>
+      )}
+      {canEmail && (
+        <Button variant="outlined" startIcon={<EmailIcon />} onClick={() => open('email')}>
+          Email
         </Button>
       )}
       <Button variant="outlined" startIcon={<PreviewIcon />} onClick={() => open('pdf')}>
@@ -254,11 +266,16 @@ export function InvoiceDetailPage() {
   const invoice = useInvoice(id);
   const [dialog, setDialog] = useState<OpenDialog>(null);
   const send = useSendInvoice(id);
+  const email = useEmailInvoice(id);
+  const [emailOnSend, setEmailOnSend] = useState(true);
   const voidInvoice = useVoidInvoice(id);
   const remove = useDeleteInvoice(invoice.data ?? { id });
   const close = () => setDialog(null);
 
   const data = invoice.data;
+  // Invoices name their client but not its email; the client record says where Duewise will send it.
+  const client = useClient(data?.client?.id ?? 0, dialog === 'send' || dialog === 'email');
+  const recipient = client.data ? client.data.billingEmail || client.data.email : undefined;
   const units = data?.currencyCode ? minorUnits.get(data.currencyCode) : undefined;
 
   return (
@@ -290,12 +307,46 @@ export function InvoiceDetailPage() {
             confirmLabel="Send"
             onConfirm={async () => {
               const sent = await send.mutateAsync();
-              notify(`Sent as ${sent.invoiceNumber}`);
+              if (!emailOnSend) {
+                notify(`Sent as ${sent.invoiceNumber}`);
+                return;
+              }
+              // The invoice is issued either way; a mail failure only means the email can be retried.
+              try {
+                const emailed = await email.mutateAsync();
+                notify(`Sent as ${sent.invoiceNumber} and emailed to ${emailed.sentTo}`);
+              } catch (failure) {
+                const reason = failure instanceof Error ? failure.message : 'the email failed.';
+                notify(`Sent as ${sent.invoiceNumber}, but not emailed: ${reason}`, 'warning');
+              }
             }}
           >
             Duewise gives it the next invoice number for {data.issueDate?.slice(0, 4)} and locks it: after this it can
             no longer be edited or deleted, only paid or voided. The total is{' '}
             <strong>{formatMoney(data.total, data.currencyCode, units)}</strong>.
+            <FormControlLabel
+              sx={{ display: 'flex', mt: 2 }}
+              control={<Checkbox checked={emailOnSend} onChange={(event) => setEmailOnSend(event.target.checked)} />}
+              label={
+                recipient
+                  ? `Email it to the client (${recipient}), PDF attached`
+                  : 'Email it to the client, PDF attached'
+              }
+            />
+          </ConfirmDialog>
+
+          <ConfirmDialog
+            open={dialog === 'email'}
+            onClose={close}
+            title="Email this invoice?"
+            confirmLabel="Email"
+            onConfirm={async () => {
+              const emailed = await email.mutateAsync();
+              notify(`Emailed to ${emailed.sentTo}`);
+            }}
+          >
+            {data.invoiceNumber} goes to {recipient ? <strong>{recipient}</strong> : 'the client'} with the PDF attached
+            {data.status === 'PAID' ? ', marked as paid in full' : ''}. You can send it as often as needed.
           </ConfirmDialog>
 
           <ConfirmDialog

@@ -28,11 +28,18 @@ export default defineConfig(({ mode }) => {
       },
     },
     test: {
+      include: ['src/**/*.test.{ts,tsx}'],
       environment: 'jsdom',
       environmentOptions: { jsdom: { url: 'http://localhost:3000/' } },
       setupFiles: ['./src/test/setup.ts'],
       css: false,
-      coverage: { include: ['src/**/*.{ts,tsx}'], exclude: ['src/api/schema.d.ts', 'src/main.tsx'] },
+      coverage: {
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/api/schema.d.ts', 'src/main.tsx'],
+        // The build fails if coverage drops below these (a few points under today's numbers).
+        // The end-to-end tests in e2e/ cover the rest, against the real API.
+        thresholds: { lines: 75, branches: 60 },
+      },
     },
   };
 });

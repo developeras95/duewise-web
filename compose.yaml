@@ -55,6 +55,10 @@ services:
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-false}
       MAIL_FROM: '${MAIL_FROM:-Duewise <billing@duewise.local>}'
       BUSINESS_EMAIL: ${BUSINESS_EMAIL:-}
+      # Decides what "today" is for default issue dates and overdue checks.
+      BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Kolkata}
+      # false = the daily reminder job never runs (reminders can still be run from the app).
+      REMINDERS_SCHEDULER_ENABLED: ${REMINDERS_SCHEDULER_ENABLED:-true}
     # The browser reaches the API through the web app on port 3000. It is also published on
     # 8090 (only on this computer) for Postman or curl; 8090, not 8080, so it does not clash with a
     # Duewise you run from IntelliJ.

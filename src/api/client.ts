@@ -1,5 +1,6 @@
 import createClient, { type Middleware } from 'openapi-fetch';
 import type { paths } from './schema';
+import { timedFetch } from './timing';
 
 /**
  * One field that failed validation, as Duewise reports it in a problem detail's "errors" list.
@@ -83,8 +84,8 @@ const throwOnError: Middleware = {
  */
 export const api = createClient<paths>({
   baseUrl: globalThis.location?.origin ?? '',
-  // Look fetch up on every call rather than once at start-up, so anything that wraps it later
-  // (request timing, or the mock API in tests) sees every request.
-  fetch: (request) => globalThis.fetch(request),
+  // Every call is timed for the request-time badge. timedFetch looks fetch up on every call rather
+  // than once at start-up, so anything that wraps it later (the mock API in tests) sees every request.
+  fetch: timedFetch,
 });
 api.use(throwOnError);

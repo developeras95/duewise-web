@@ -1,0 +1,107 @@
+# Publishes a release when a version tag is pushed:  git tag v1.0.0  then  git push origin v1.0.0
+#   1. checks the tag matches the version in package.json and has a CHANGELOG.md entry
+#   2. runs the same checks as CI: lint, formatting, tests, build, and that THIRD-PARTY.txt is current
+#   3. pushes the Docker image to GitHub Container Registry (ghcr.io)
+#   4. creates the GitHub Release with a compose.release.yaml pinned to this version, and the
+#      changelog section as notes
+# Nothing is published unless every step before it succeeded.
+# Safe to re-run: an existing release gets its files and notes replaced, and :latest only
+# moves when this is the highest version tag, so re-running an old release cannot move it back.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write # create the GitHub Release
+  packages: write # push the image to ghcr.io
+
+jobs:
+  release:
+    name: Check and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Check the tag, package.json and CHANGELOG.md agree
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $version in package.json"; exit 1
+          fi
+          awk -v v="$version" 'index($0, "## [" v "]") == 1 {f = 1; next} /^## \[/ {f = 0} f' CHANGELOG.md \
+            | sed -e '/./,$!d' > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for [$version]"; exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint, formatting, tests and build
+        run: |
+          npm run lint
+          npm run format:check
+          npm run coverage
+          npm run build
+
+      - name: Check THIRD-PARTY.txt lists the packages in this build
+        run: |
+          npm run licenses
+          git diff --exit-code THIRD-PARTY.txt \
+            || { echo "::error::THIRD-PARTY.txt is out of date: run npm run licenses and commit it"; exit 1; }
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Build and push the Docker image
+        run: |
+          highest=$(git ls-remote --tags --refs origin 'v*' \
+            | sed -n 's#^.*refs/tags/v\([0-9]*\.[0-9]*\.[0-9]*\)$#\1#p' | sort -V | tail -1)
+          docker build --tag "$IMAGE:$VERSION" .
+          docker push "$IMAGE:$VERSION"
+          if [ "$VERSION" = "$highest" ]; then
+            docker tag "$IMAGE:$VERSION" "$IMAGE:latest"
+            docker push "$IMAGE:latest"
+          else
+            echo "::notice::$VERSION is not the newest version ($highest), so :latest stays where it is"
+          fi
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # compose.release.yaml in the repo runs :latest; the attached copy is pinned to this version.
+          mkdir -p release
+          sed "s#$IMAGE:latest#$IMAGE:$VERSION#" compose.release.yaml > release/compose.release.yaml
+          grep -q "image: $IMAGE:$VERSION" release/compose.release.yaml \
+            || { echo "::error::Could not pin the image version in compose.release.yaml"; exit 1; }
+          {
+            echo
+            echo "### Downloads"
+            echo
+            echo "- **Run the whole app with Docker, nothing else needed:** download \`compose.release.yaml\` below, then \`docker compose -f compose.release.yaml up -d\` and open http://localhost:3000"
+            echo "- Docker image: \`docker pull $IMAGE:$VERSION\`"
+            echo
+            echo "Licence: proprietary, all rights reserved. See LICENSE. Third-party packages: THIRD-PARTY.txt."
+          } >> release-notes.md
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "::notice::Release $GITHUB_REF_NAME already exists; replacing its files and notes"
+            gh release upload "$GITHUB_REF_NAME" release/compose.release.yaml --clobber
+            gh release edit "$GITHUB_REF_NAME" --title "Duewise Web $VERSION" --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" release/compose.release.yaml \
+              --title "Duewise Web $VERSION" --notes-file release-notes.md --verify-tag
+          fi

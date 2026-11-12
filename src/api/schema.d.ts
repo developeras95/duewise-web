@@ -353,6 +353,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Email an issued invoice to the client
+         * @description Emails the invoice with its PDF attached to the client's billing email (or main email). Sent, part-paid and paid invoices only; drafts and void invoices are refused.
+         */
+        post: operations["email"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1052,6 +1072,19 @@ export interface components {
             balances?: components["schemas"]["CurrencyBalance"][];
             openInvoices?: components["schemas"]["OpenInvoice"][];
         };
+        InvoiceEmail: {
+            /**
+             * Format: int64
+             * @example 42
+             */
+            invoiceId?: number;
+            /** @example INV-2026-00042 */
+            invoiceNumber?: string;
+            /** @example accounts@acme.example */
+            sentTo?: string;
+            /** Format: date-time */
+            sentAt?: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -1708,6 +1741,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Statement"];
+                };
+            };
+        };
+    };
+    email: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvoiceEmail"];
                 };
             };
         };

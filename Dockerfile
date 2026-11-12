@@ -24,7 +24,7 @@ ENV DUEWISE_API_URL=http://app:8080 \
     NGINX_RESOLVER=127.0.0.11
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY LICENSE /usr/share/licenses/duewise-web/LICENSE
+COPY LICENSE THIRD-PARTY.txt /usr/share/licenses/duewise-web/
 
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1

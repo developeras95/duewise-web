@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react';
 import { Route, Routes } from 'react-router';
 import LinearProgress from '@mui/material/LinearProgress';
 import { AppLayout } from './components/AppLayout';
-import { ComingSoonPage } from './pages/ComingSoonPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -26,6 +25,9 @@ const NewInvoicePage = lazy(() =>
 const EditInvoicePage = lazy(() =>
   import('./pages/invoices/InvoiceFormPage').then((m) => ({ default: m.EditInvoicePage })),
 );
+
+const RemindersPage = lazy(() => import('./pages/reminders/RemindersPage').then((m) => ({ default: m.RemindersPage })));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 /** Every page of the app, inside the shared layout. */
 export function App() {
@@ -51,19 +53,8 @@ export function App() {
           <Route path=":id" element={<ClientDetailPage />} />
           <Route path=":id/edit" element={<EditClientPage />} />
         </Route>
-        <Route
-          path="reminders"
-          element={
-            <ComingSoonPage
-              title="Reminders"
-              description="Reminder settings, the history of reminders sent, and running the reminder job on demand."
-            />
-          }
-        />
-        <Route
-          path="settings"
-          element={<ComingSoonPage title="Settings" description="Currencies and payment methods." />}
-        />
+        <Route path="reminders" element={<RemindersPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

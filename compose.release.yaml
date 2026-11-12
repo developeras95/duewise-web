@@ -1,0 +1,69 @@
+# Run the whole of Duewise, with its web app, with nothing installed but Docker: no clone, no Node.
+#
+#   1. Download this file (it is attached to every GitHub Release).
+#   2. In the folder where you saved it:   docker compose -f compose.release.yaml up -d
+#   3. Open http://localhost:3000            (emails Duewise sends: http://localhost:8026)
+#
+#   Stop:                       docker compose -f compose.release.yaml down
+#   Stop and delete all data:   docker compose -f compose.release.yaml down -v
+#
+# Settings: a .env file next to this one is read automatically (see .env.example in the repository),
+# e.g. WEB_PORT=8081 if 3000 is taken, or the mail settings for real email instead of Mailpit.
+name: duewise-app
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: duewise
+      POSTGRES_USER: duewise
+      POSTGRES_PASSWORD: duewise
+    volumes:
+      - duewise-app-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U duewise -d duewise']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Catches every email Duewise sends. Inbox: http://localhost:8026
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '${MAILPIT_PORT:-8026}:8025'
+
+  app:
+    image: ghcr.io/developeras95/duewise-invoicing-api:${DUEWISE_VERSION:-latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/duewise
+      DB_USERNAME: duewise
+      DB_PASSWORD: duewise
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:-false}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:-false}
+      MAIL_FROM: '${MAIL_FROM:-Duewise <billing@duewise.local>}'
+      BUSINESS_EMAIL: ${BUSINESS_EMAIL:-}
+      BUSINESS_TIME_ZONE: ${BUSINESS_TIME_ZONE:-Asia/Kolkata}
+      REMINDERS_SCHEDULER_ENABLED: ${REMINDERS_SCHEDULER_ENABLED:-true}
+
+  web:
+    # The release workflow pins this tag to the release's version in the attached copy.
+    image: ghcr.io/developeras95/duewise-web:latest
+    depends_on:
+      app:
+        condition: service_started
+    environment:
+      DUEWISE_API_URL: http://app:8080
+    ports:
+      - '${WEB_PORT:-3000}:8080'
+
+volumes:
+  duewise-app-pgdata:

@@ -177,15 +177,26 @@ describe('new invoice', () => {
 });
 
 describe('invoice page', () => {
-  it('offers send, edit and delete for a draft, and sending gives it a number', async () => {
+  it('offers send, edit and delete for a draft, and sending gives it a number and emails it', async () => {
     let sent = false;
+    let emailed = false;
     server.use(
       http.get('*/api/v1/invoices/17', () =>
         HttpResponse.json(sent ? anInvoice({ status: 'SENT', invoiceNumber: 'INV-2026-00043' }) : anInvoice()),
       ),
+      http.get('*/api/v1/clients/1', () => HttpResponse.json(aClient({ billingEmail: 'accounts@acmedesign.in' }))),
       http.post('*/api/v1/invoices/17/send', () => {
         sent = true;
         return HttpResponse.json(anInvoice({ status: 'SENT', invoiceNumber: 'INV-2026-00043', version: 3 }));
+      }),
+      http.post('*/api/v1/invoices/17/email', () => {
+        emailed = true;
+        return HttpResponse.json({
+          invoiceId: 17,
+          invoiceNumber: 'INV-2026-00043',
+          sentTo: 'accounts@acmedesign.in',
+          sentAt: '2026-11-13T09:30:00Z',
+        });
       }),
     );
 
@@ -195,13 +206,110 @@ describe('invoice page', () => {
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/invoices/17/edit');
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Record payment' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Email' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Send' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Send' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      await within(dialog).findByRole('checkbox', { name: /Email it to the client \(accounts@acmedesign.in\)/ }),
+    ).toBeChecked();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
 
     expect(await screen.findByRole('heading', { name: 'INV-2026-00043' })).toBeInTheDocument();
+    expect(await screen.findByText('Sent as INV-2026-00043 and emailed to accounts@acmedesign.in')).toBeInTheDocument();
+    expect(emailed).toBe(true);
     expect(screen.getByRole('button', { name: 'Record payment' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Email' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument();
+  });
+
+  it('still sends when the email fails, and says so', async () => {
+    let sent = false;
+    server.use(
+      http.get('*/api/v1/invoices/17', () =>
+        HttpResponse.json(sent ? anInvoice({ status: 'SENT', invoiceNumber: 'INV-2026-00043' }) : anInvoice()),
+      ),
+      http.get('*/api/v1/clients/1', () => HttpResponse.json(aClient())),
+      http.post('*/api/v1/invoices/17/send', () => {
+        sent = true;
+        return HttpResponse.json(anInvoice({ status: 'SENT', invoiceNumber: 'INV-2026-00043', version: 3 }));
+      }),
+      http.post('*/api/v1/invoices/17/email', () =>
+        problem(502, 'EMAIL_FAILED', 'The mail server did not accept the email, so nothing was sent. Try again later.'),
+      ),
+    );
+
+    renderRoutes('/invoices/17');
+    await userEvent.click(await screen.findByRole('button', { name: 'Send' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText(/Sent as INV-2026-00043, but not emailed: The mail server/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'INV-2026-00043' })).toBeInTheDocument();
+  });
+
+  it('sends without emailing when the box is cleared', async () => {
+    let emailed = false;
+    server.use(
+      http.get('*/api/v1/invoices/17', () => HttpResponse.json(anInvoice())),
+      http.get('*/api/v1/clients/1', () => HttpResponse.json(aClient())),
+      http.post('*/api/v1/invoices/17/send', () =>
+        HttpResponse.json(anInvoice({ status: 'SENT', invoiceNumber: 'INV-2026-00043', version: 3 })),
+      ),
+      http.post('*/api/v1/invoices/17/email', () => {
+        emailed = true;
+        return HttpResponse.json({});
+      }),
+    );
+
+    renderRoutes('/invoices/17');
+    await userEvent.click(await screen.findByRole('button', { name: 'Send' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('checkbox', { name: /Email it to the client/ }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
+
+    expect(await screen.findByText('Sent as INV-2026-00043')).toBeInTheDocument();
+    expect(emailed).toBe(false);
+  });
+
+  it('emails a paid invoice again, and shows a mail failure in the dialog', async () => {
+    let attempts = 0;
+    server.use(
+      http.get('*/api/v1/invoices/17', () =>
+        HttpResponse.json(
+          anInvoice({ status: 'PAID', invoiceNumber: 'INV-2026-00043', amountPaid: 11800, balanceDue: 0 }),
+        ),
+      ),
+      http.get('*/api/v1/invoices/17/payments', () => HttpResponse.json([])),
+      http.get('*/api/v1/clients/1', () => HttpResponse.json(aClient())),
+      http.post('*/api/v1/invoices/17/email', () => {
+        attempts += 1;
+        return attempts === 1
+          ? problem(
+              502,
+              'EMAIL_FAILED',
+              'The mail server did not accept the email, so nothing was sent. Try again later.',
+            )
+          : HttpResponse.json({
+              invoiceId: 17,
+              invoiceNumber: 'INV-2026-00043',
+              sentTo: 'accounts@acmedesign.in',
+              sentAt: '2026-11-13T09:30:00Z',
+            });
+      }),
+    );
+
+    renderRoutes('/invoices/17');
+    await userEvent.click(await screen.findByRole('button', { name: 'Email' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('accounts@acmedesign.in')).toBeInTheDocument();
+    expect(within(dialog).getByText(/marked as paid in full/)).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Email' }));
+    expect(await within(dialog).findByText(/did not accept the email/)).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Email' }));
+    expect(await screen.findByText('Emailed to accounts@acmedesign.in')).toBeInTheDocument();
+    expect(attempts).toBe(2);
   });
 
   it('asks for a reference when the payment method needs one, and shows an overpayment refusal', async () => {

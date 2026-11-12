@@ -7,9 +7,12 @@ export type Invoice = components['schemas']['Invoice'];
 export type InvoiceSummary = components['schemas']['InvoiceSummary'];
 export type InvoiceRequest = components['schemas']['InvoiceRequest'];
 export type InvoiceStatus = NonNullable<Invoice['status']>;
+export type InvoiceEmail = components['schemas']['InvoiceEmail'];
 export type Payment = components['schemas']['Payment'];
 export type PaymentRequest = components['schemas']['PaymentRequest'];
 export type PaymentMethod = components['schemas']['PaymentMethod'];
+export type CreatePaymentMethodRequest = components['schemas']['CreatePaymentMethodRequest'];
+export type UpdatePaymentMethodRequest = components['schemas']['UpdatePaymentMethodRequest'];
 
 export const INVOICE_STATUSES: InvoiceStatus[] = ['DRAFT', 'SENT', 'PARTIALLY_PAID', 'PAID', 'VOID'];
 export type InvoiceSortField = 'issueDate' | 'dueDate' | 'total' | 'invoiceNumber' | 'createdAt';
@@ -92,6 +95,28 @@ export function usePaymentMethods(active?: boolean) {
   });
 }
 
+export function useCreatePaymentMethod() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: CreatePaymentMethodRequest) => {
+      const { data } = await api.POST('/api/v1/payment-methods', { body });
+      return data!;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payment-methods'] }),
+  });
+}
+
+export function useUpdatePaymentMethod() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ code, ...body }: UpdatePaymentMethodRequest & { code: string }) => {
+      const { data } = await api.PATCH('/api/v1/payment-methods/{code}', { params: { path: { code } }, body });
+      return data!;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['payment-methods'] }),
+  });
+}
+
 export function useCreateInvoice() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -144,6 +169,19 @@ export function useSendInvoice(id: number) {
     onSuccess: (invoice) => {
       queryClient.setQueryData(invoiceKeys.detail(id), invoice);
       return invoiceChanged(queryClient, invoice);
+    },
+  });
+}
+
+/**
+ * Emails an issued invoice, PDF attached, to the client's billing email (or main email). Nothing on
+ * the invoice changes, so nothing is refreshed. Fails with 502 EMAIL_FAILED if the mail server refuses.
+ */
+export function useEmailInvoice(id: number) {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.POST('/api/v1/invoices/{id}/email', { params: { path: { id } } });
+      return data!;
     },
   });
 }

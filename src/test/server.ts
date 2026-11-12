@@ -47,7 +47,11 @@ export function problem(status: number, code: string, detail: string, errors?: {
  * A stand-in for the Duewise API during tests. Tests add or replace handlers with server.use(...).
  * Any request without a handler fails the test, so nothing calls a real server by accident.
  */
+const emptyPage = { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 };
+
 export const server = setupServer(
   http.get('*/api/v1/currencies', () => HttpResponse.json(currencies)),
+  http.get('*/api/v1/invoices', () => HttpResponse.json(emptyPage)),
+  http.get('*/api/v1/reminders/log', () => HttpResponse.json(emptyPage)),
   http.get('*/actuator/health', () => HttpResponse.json({ status: 'UP', components: { db: { status: 'UP' } } })),
 );

@@ -79,3 +79,10 @@ export function addressLines(address?: {
     Boolean(line && line.trim()),
   );
 }
+
+/** "0.56 ms", "48 ms", "1.67 s" */
+export function formatDuration(ms: number) {
+  if (ms < 1) return `${ms.toFixed(2)} ms`;
+  if (ms < 1000) return `${Math.round(ms)} ms`;
+  return `${(ms / 1000).toFixed(2)} s`;
+}
