@@ -85,12 +85,14 @@ describe('reminders', () => {
     await userEvent.clear(screen.getByRole('textbox', { name: 'Add a day' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Add a day' }), '30{Enter}');
     await userEvent.click(screen.getByRole('button', { name: 'Add recipient' }));
-    await userEvent.type(screen.getAllByRole('textbox', { name: 'Email' })[1], 'Owner@duewise.local');
+    await userEvent.click(screen.getAllByRole('textbox', { name: 'Email' })[1]);
+    await userEvent.paste('Owner@duewise.local');
     expect(screen.getByText('Listed twice')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save settings' })).toBeDisabled();
 
     await userEvent.clear(screen.getAllByRole('textbox', { name: 'Email' })[1]);
-    await userEvent.type(screen.getAllByRole('textbox', { name: 'Email' })[1], 'accounts@duewise.local');
+    await userEvent.click(screen.getAllByRole('textbox', { name: 'Email' })[1]);
+    await userEvent.paste('accounts@duewise.local');
     await userEvent.click(screen.getByRole('button', { name: 'Save settings' }));
 
     await waitFor(() => expect(saved).toBeDefined());

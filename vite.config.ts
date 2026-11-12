@@ -33,6 +33,8 @@ export default defineConfig(({ mode }) => {
       environmentOptions: { jsdom: { url: 'http://localhost:3000/' } },
       setupFiles: ['./src/test/setup.ts'],
       css: false,
+      // Tests that type into forms take a few seconds; CI runners are about half as fast as a laptop.
+      testTimeout: 15_000,
       coverage: {
         include: ['src/**/*.{ts,tsx}'],
         exclude: ['src/api/schema.d.ts', 'src/main.tsx'],
