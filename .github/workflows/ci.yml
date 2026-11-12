@@ -18,10 +18,13 @@ concurrency: # a newer push to the same branch cancels the older run
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# The runners are pinned to Ubuntu 24.04, not ubuntu-latest: Playwright installs the browser's
+# system packages only for Linux versions it knows, and ubuntu-latest moved to Ubuntu 26 in
+# October 2026. Move up together with a Playwright version that supports the newer image.
 jobs:
   build:
     name: Build and test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -73,7 +76,7 @@ jobs:
   e2e:
     name: End to end
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       # Duewise and the browser must agree on what "today" is.
