@@ -39,9 +39,10 @@ jobs:
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::Tag $GITHUB_REF_NAME does not match version $version in package.json"; exit 1
           fi
+          # The notes go outside the checkout, so the formatting check below does not inspect them.
           awk -v v="$version" 'index($0, "## [" v "]") == 1 {f = 1; next} /^## \[/ {f = 0} f' CHANGELOG.md \
-            | sed -e '/./,$!d' > release-notes.md
-          if [ ! -s release-notes.md ]; then
+            | sed -e '/./,$!d' > "$RUNNER_TEMP/release-notes.md"
+          if [ ! -s "$RUNNER_TEMP/release-notes.md" ]; then
             echo "::error::CHANGELOG.md has no section for [$version]"; exit 1
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
@@ -96,12 +97,12 @@ jobs:
             echo "- Docker image: \`docker pull $IMAGE:$VERSION\`"
             echo
             echo "Licence: proprietary, all rights reserved. See LICENSE. Third-party packages: THIRD-PARTY.txt."
-          } >> release-notes.md
+          } >> "$RUNNER_TEMP/release-notes.md"
           if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
             echo "::notice::Release $GITHUB_REF_NAME already exists; replacing its files and notes"
             gh release upload "$GITHUB_REF_NAME" release/compose.release.yaml --clobber
-            gh release edit "$GITHUB_REF_NAME" --title "Duewise Web $VERSION" --notes-file release-notes.md
+            gh release edit "$GITHUB_REF_NAME" --title "Duewise Web $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
           else
             gh release create "$GITHUB_REF_NAME" release/compose.release.yaml \
-              --title "Duewise Web $VERSION" --notes-file release-notes.md --verify-tag
+              --title "Duewise Web $VERSION" --notes-file "$RUNNER_TEMP/release-notes.md" --verify-tag
           fi
