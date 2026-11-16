@@ -1,0 +1,76 @@
+# Removes image versions from GitHub's container registry that nothing uses any more: versions with no
+# tag that no tagged image refers to. They are left behind when a release is re-run and pushes the same
+# tag again with a new digest. Tagged versions (1.0.0, latest, ...) and everything they refer to, such
+# as the parts of a multi-platform image or its build attestations, are never deleted.
+#
+# Run it from the Actions tab ("Clean up untagged images", then "Run workflow"). By default it only
+# lists what it would delete; run it again with "Delete them" ticked to delete.
+name: Clean up untagged images
+
+on:
+  workflow_dispatch:
+    inputs:
+      delete:
+        description: Delete them (otherwise only list what would be deleted)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write # list and delete versions of this repository's image
+
+jobs:
+  clean:
+    name: Untagged image versions
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DELETE: ${{ inputs.delete }}
+    steps:
+      - name: Find and remove untagged versions nothing refers to
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          package="${GITHUB_REPOSITORY#*/}"
+          image="$owner/$package"
+          api="/users/$owner/packages/container/$package/versions"
+
+          gh api --paginate "$api" \
+            --jq '.[] | [.id, .name, ((.metadata.container.tags // []) | join(","))] | @tsv' > versions.tsv
+          echo "$(wc -l < versions.tsv) versions of ghcr.io/$image"
+
+          # Every digest a tagged version refers to (the platform images and attestations of an index).
+          token=$(curl -fsS -u "x:$GH_TOKEN" "https://ghcr.io/token?scope=repository:$image:pull&service=ghcr.io" | jq -r .token)
+          accept="application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json"
+          accept="$accept,application/vnd.oci.image.manifest.v1+json,application/vnd.docker.distribution.manifest.v2+json"
+          : > referenced.txt
+          while IFS=$'\t' read -r id digest tags; do
+            [ -n "$tags" ] || continue
+            curl -fsS -H "Authorization: Bearer $token" -H "Accept: $accept" \
+              "https://ghcr.io/v2/$image/manifests/$digest" | jq -r '.manifests[]?.digest' >> referenced.txt
+          done < versions.tsv
+
+          {
+            echo "### ghcr.io/$image"
+            echo
+            if [ "$DELETE" = "true" ]; then echo "Deleted:"; else echo "Would delete (dry run):"; fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          count=0
+          while IFS=$'\t' read -r id digest tags; do
+            [ -z "$tags" ] || continue
+            if grep -qx "$digest" referenced.txt; then
+              echo "keep $digest: part of a tagged image"
+              continue
+            fi
+            count=$((count + 1))
+            echo "- \`$digest\`" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$DELETE" = "true" ]; then
+              gh api --method DELETE "$api/$id"
+              echo "deleted $digest"
+            else
+              echo "would delete $digest"
+            fi
+          done < versions.tsv
+          [ "$count" -gt 0 ] || echo "Nothing to delete." >> "$GITHUB_STEP_SUMMARY"
+          echo "$count untagged version(s) nothing refers to"
