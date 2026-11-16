@@ -2,6 +2,22 @@
 
 All notable changes to Duewise Web. Versions follow [semantic versioning](https://semver.org/).
 
+## [1.1.0] - 2026-11-16
+
+Needs Duewise 1.2.0 or later.
+
+### Added
+
+- Revenue page: money received per month for each currency, as a bar chart per currency with its total,
+  and a table by month. Last 12 months, this year, last year or any months in between, kept in the
+  address. It says which months are from Duewise's nightly copy (and as of when) and that the current
+  month is live, and offers "Refresh now".
+
+### Changed
+
+- The Invoices header says "about 4,994,000 invoices" when Duewise reports an estimated total, which it
+  does for the unfiltered list of very large databases instead of counting every invoice.
+
 ## [1.0.0] - 2026-11-13
 
 The first release: a web app for every part of the Duewise API. Needs Duewise 1.1.0 or later.

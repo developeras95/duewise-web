@@ -3,7 +3,7 @@
   "info": {
     "title": "Duewise API",
     "description": "Invoicing, payments and overdue reminders for freelancers and small businesses.\nManage clients, raise invoices, record payments and see what is overdue.",
-    "version": "1.0.0"
+    "version": "1.2.0"
   },
   "servers": [
     {
@@ -39,6 +39,10 @@
     {
       "name": "Currencies",
       "description": "Currencies that invoices can be raised in"
+    },
+    {
+      "name": "Reports",
+      "description": "Money received over time"
     }
   ],
   "paths": {
@@ -1123,6 +1127,72 @@
           }
         }
       }
+    },
+    "/api/v1/reports/revenue": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Revenue per month",
+        "description": "Money received per month and currency, with totals per currency. Finished months come from the stored report, refreshed nightly (see storedAsOf); the current month is always live.",
+        "operationId": "revenue",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "First month, e.g. 2025-11. Default: eleven months before 'to'.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2025-11"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Last month, included, e.g. 2026-10. Default: the current month.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "2026-10"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevenueReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/revenue/refresh": {
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Refresh the stored revenue report now",
+        "description": "Recomputes every finished month from the payments, as the nightly job does. Use after recording payments for a past month. Takes about a second per few million payments.",
+        "operationId": "refresh",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevenueRefresh"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2047,12 +2117,18 @@
           "totalElements": {
             "type": "integer",
             "format": "int64",
-            "example": 57
+            "example": 57,
+            "description": "Number of matching items; an estimate when totalExact is false"
           },
           "totalPages": {
             "type": "integer",
             "format": "int32",
             "example": 3
+          },
+          "totalExact": {
+            "type": "boolean",
+            "example": true,
+            "description": "False when totalElements is PostgreSQL's estimate rather than a count: for very large unfiltered lists, where counting every row would cost more than the page itself"
           }
         }
       },
@@ -2192,12 +2268,18 @@
           "totalElements": {
             "type": "integer",
             "format": "int64",
-            "example": 57
+            "example": 57,
+            "description": "Number of matching items; an estimate when totalExact is false"
           },
           "totalPages": {
             "type": "integer",
             "format": "int32",
             "example": 3
+          },
+          "totalExact": {
+            "type": "boolean",
+            "example": true,
+            "description": "False when totalElements is PostgreSQL's estimate rather than a count: for very large unfiltered lists, where counting every row would cost more than the page itself"
           }
         }
       },
@@ -2224,12 +2306,18 @@
           "totalElements": {
             "type": "integer",
             "format": "int64",
-            "example": 57
+            "example": 57,
+            "description": "Number of matching items; an estimate when totalExact is false"
           },
           "totalPages": {
             "type": "integer",
             "format": "int32",
             "example": 3
+          },
+          "totalExact": {
+            "type": "boolean",
+            "example": true,
+            "description": "False when totalElements is PostgreSQL's estimate rather than a count: for very large unfiltered lists, where counting every row would cost more than the page itself"
           }
         }
       },
@@ -2368,6 +2456,104 @@
           "sentAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "RevenueMonth": {
+        "type": "object",
+        "description": "Money received in one month in one currency.",
+        "properties": {
+          "month": {
+            "type": "string",
+            "example": "2026-10"
+          },
+          "currencyCode": {
+            "type": "string",
+            "example": "INR"
+          },
+          "payments": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of payments",
+            "example": 42
+          },
+          "received": {
+            "type": "number",
+            "description": "Sum of those payments, in the currency",
+            "example": 1250000.0
+          }
+        }
+      },
+      "RevenueTotal": {
+        "type": "object",
+        "description": "Money received over the whole report period in one currency.",
+        "properties": {
+          "currencyCode": {
+            "type": "string",
+            "example": "INR"
+          },
+          "payments": {
+            "type": "integer",
+            "format": "int64",
+            "example": 512
+          },
+          "received": {
+            "type": "number",
+            "example": 15430000.0
+          }
+        }
+      },
+      "RevenueReport": {
+        "type": "object",
+        "description": "Money received per month and currency. Amounts in different currencies are never added together. Finished months come from the stored report (see storedAsOf); the current month, when it is in the period, is added up live from the payments (see liveMonth).",
+        "properties": {
+          "from": {
+            "type": "string",
+            "example": "2025-11"
+          },
+          "to": {
+            "type": "string",
+            "example": "2026-10"
+          },
+          "months": {
+            "type": "array",
+            "description": "One entry per month and currency that received payments, oldest month first",
+            "items": {
+              "$ref": "#/components/schemas/RevenueMonth"
+            }
+          },
+          "totals": {
+            "type": "array",
+            "description": "Totals for the whole period, one per currency",
+            "items": {
+              "$ref": "#/components/schemas/RevenueTotal"
+            }
+          },
+          "storedAsOf": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the stored months were last brought up to date. Payments recorded later for a finished month appear after the next refresh."
+          },
+          "liveMonth": {
+            "type": "string",
+            "example": "2026-11",
+            "description": "The month added up live from the payments, so always up to date; null when the period ends before the current month"
+          }
+        }
+      },
+      "RevenueRefresh": {
+        "type": "object",
+        "properties": {
+          "refreshedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The stored report now includes every payment recorded before this moment"
+          },
+          "tookMs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How long the refresh took",
+            "example": 1330
           }
         }
       }

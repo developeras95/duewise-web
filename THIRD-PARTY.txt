@@ -3,7 +3,7 @@ Third-party software in Duewise Web
 The built app (the files nginx serves) contains these packages. Each is licensed under its own
 terms; the licence texts are in each package (node_modules/<name>/LICENSE) and at its repository.
 
-Licences: MIT (90), BSD-3-Clause (4), ISC (2)
+Licences: MIT (106), MIT AND ISC (1), ISC (15), BSD-3-Clause (4)
 
 @babel/code-frame 7.29.7 - MIT - https://github.com/babel/babel.git
 @babel/generator 7.29.12 - MIT - https://github.com/babel/babel.git
@@ -37,26 +37,54 @@ Licences: MIT (90), BSD-3-Clause (4), ISC (2)
 @mui/material 9.5.0 - MIT - https://github.com/mui/material-ui.git
 @mui/system 9.5.0 - MIT - https://github.com/mui/material-ui.git
 @mui/utils 9.5.0 - MIT - https://github.com/mui/material-ui.git
+@mui/x-charts 9.18.0 - MIT - https://github.com/mui/mui-x.git
+@mui/x-charts-vendor 9.18.0 - MIT AND ISC - https://github.com/mui/mui-x.git
 @mui/x-data-grid 9.17.0 - MIT - https://github.com/mui/mui-x.git
 @mui/x-date-pickers 9.17.0 - MIT - https://github.com/mui/mui-x.git
+@mui/x-internal-gestures 9.17.0 - MIT - https://github.com/mui/mui-x.git
+@mui/x-internals 9.18.0 - MIT - https://github.com/mui/mui-x.git
 @mui/x-internals 9.17.0 - MIT - https://github.com/mui/mui-x.git
 @mui/x-virtualizer 0.7.5 - MIT - https://github.com/mui/mui-x.git
 @remix-run/route-pattern 0.22.1 - MIT - https://github.com/remix-run/remix.git
 @standard-schema/utils 0.3.0 - MIT - https://github.com/standard-schema/standard-schema
 @tanstack/query-core 5.105.1 - MIT - https://github.com/TanStack/query.git
 @tanstack/react-query 5.105.1 - MIT - https://github.com/TanStack/query.git
+@types/d3-array 3.2.2 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-color 3.1.3 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-format 3.0.4 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-geo 3.1.1 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-interpolate 3.0.4 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-path 3.1.1 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-scale 4.0.9 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-shape 3.2.0 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-time 3.0.4 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-time-format 4.0.3 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/d3-timer 3.0.2 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
+@types/geojson 7946.0.16 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
 @types/parse-json 4.0.2 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
 @types/react 19.3.0 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
 @types/react-dom 19.3.0 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
 @types/react-transition-group 4.4.12 - MIT - https://github.com/DefinitelyTyped/DefinitelyTyped.git
 ajv 8.20.0 - MIT - ajv-validator/ajv
 babel-plugin-macros 3.1.0 - MIT - https://github.com/kentcdodds/babel-plugin-macros
+bezier-easing 3.2.0 - MIT - git://github.com/gre/bezier-easing.git
 callsites 3.1.0 - MIT - sindresorhus/callsites
 clsx 2.1.1 - MIT - lukeed/clsx
 convert-source-map 1.9.0 - MIT - git://github.com/thlorenz/convert-source-map.git
 cookie-es 3.1.1 - MIT - unjs/cookie-es
 cosmiconfig 7.1.0 - MIT - https://github.com/davidtheclark/cosmiconfig.git
 csstype 3.2.3 - MIT - https://github.com/frenic/csstype
+d3-array 3.2.5 - ISC - https://github.com/d3/d3-array.git
+d3-color 3.1.1 - ISC - https://github.com/d3/d3-color.git
+d3-format 3.1.3 - ISC - https://github.com/d3/d3-format.git
+d3-geo 3.1.2 - ISC - https://github.com/d3/d3-geo.git
+d3-interpolate 3.0.2 - ISC - https://github.com/d3/d3-interpolate.git
+d3-path 3.1.1 - ISC - https://github.com/d3/d3-path.git
+d3-scale 4.0.3 - ISC - https://github.com/d3/d3-scale.git
+d3-shape 3.2.1 - ISC - https://github.com/d3/d3-shape.git
+d3-time 3.1.1 - ISC - https://github.com/d3/d3-time.git
+d3-time-format 4.1.1 - ISC - https://github.com/d3/d3-time-format.git
+d3-timer 3.0.2 - ISC - https://github.com/d3/d3-timer.git
 dayjs 1.11.23 - MIT - https://github.com/iamkun/dayjs.git
 debug 4.4.3 - MIT - git://github.com/debug-js/debug.git
 error-ex 1.3.4 - MIT - qix-/node-error-ex
@@ -65,10 +93,12 @@ escape-string-regexp 4.0.0 - MIT - sindresorhus/escape-string-regexp
 fast-deep-equal 3.1.3 - MIT - https://github.com/epoberezkin/fast-deep-equal.git
 fast-uri 3.1.9 - BSD-3-Clause - https://github.com/fastify/fast-uri.git
 find-root 1.1.0 - MIT - git@github.com:js-n/find-root.git
+flatqueue 3.1.0 - ISC - https://github.com/mourner/flatqueue.git
 function-bind 1.1.2 - MIT - https://github.com/Raynos/function-bind.git
 hasown 2.0.4 - MIT - https://github.com/inspect-js/hasOwn.git
 hoist-non-react-statics 3.3.2 - BSD-3-Clause - git://github.com/mridgway/hoist-non-react-statics.git
 import-fresh 3.3.1 - MIT - sindresorhus/import-fresh
+internmap 2.0.3 - ISC - https://github.com/mbostock/internmap.git
 is-arrayish 0.2.1 - MIT - https://github.com/qix-/node-is-arrayish.git
 is-core-module 2.17.0 - MIT - https://github.com/inspect-js/is-core-module.git
 js-tokens 4.0.0 - MIT - lydell/js-tokens

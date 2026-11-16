@@ -69,6 +69,15 @@ function columns(minorUnits: Map<string, number>): GridColDef<InvoiceSummary>[] 
   ];
 }
 
+/**
+ * "57 invoices", or for millions of invoices "about 4,994,000 invoices": Duewise then reports
+ * PostgreSQL's estimate instead of counting every row, so it is rounded and said to be approximate.
+ */
+function invoiceCount(total: number, exact: boolean) {
+  if (!exact) return `about ${(Math.round(total / 1000) * 1000).toLocaleString()} invoices`;
+  return `${total.toLocaleString()} ${total === 1 ? 'invoice' : 'invoices'}`;
+}
+
 /** The client filter needs a name to show; when the page opens with ?clientId=7 it is looked up. */
 function useSelectedClient(clientId: number | undefined) {
   const client = useClient(clientId ?? 0, clientId !== undefined);
@@ -110,7 +119,7 @@ export function InvoicesPage() {
     <>
       <PageHeader
         title="Invoices"
-        subtitle={invoices.data ? `${total.toLocaleString()} ${total === 1 ? 'invoice' : 'invoices'}` : ' '}
+        subtitle={invoices.data ? invoiceCount(total, invoices.data.totalExact !== false) : ' '}
         actions={
           <Button
             variant="contained"

@@ -104,6 +104,13 @@ test('from a new client to a paid invoice', async ({ page, request }) => {
   // Nothing is owed any more.
   await page.getByRole('link', { name: client.name }).click();
   await expect(page.getByText('Nothing is owed: this client has no open invoices.')).toBeVisible();
+
+  // Both payments were received this month, which the revenue report adds up live.
+  await page.getByRole('link', { name: 'Revenue' }).click();
+  await expect(page.getByText(/is live, up to the last payment recorded/)).toBeVisible();
+  const thisMonth = page.getByRole('table', { name: 'Revenue by month' }).getByRole('row').nth(1);
+  await expect(thisMonth).toContainText('(so far)');
+  await expect(thisMonth).toContainText('₹');
 });
 
 test("Duewise's own rules come back to the right field", async ({ page }) => {

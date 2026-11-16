@@ -15,6 +15,7 @@ import { useColorScheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/SpaceDashboardOutlined';
 import InvoiceIcon from '@mui/icons-material/ReceiptLongOutlined';
 import ClientIcon from '@mui/icons-material/PeopleAltOutlined';
+import RevenueIcon from '@mui/icons-material/InsightsOutlined';
 import ReminderIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import SettingsIcon from '@mui/icons-material/TuneOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: <DashboardIcon /> },
   { to: '/invoices', label: 'Invoices', icon: <InvoiceIcon /> },
   { to: '/clients', label: 'Clients', icon: <ClientIcon /> },
+  { to: '/revenue', label: 'Revenue', icon: <RevenueIcon /> },
   { to: '/reminders', label: 'Reminders', icon: <ReminderIcon /> },
   { to: '/settings', label: 'Settings', icon: <SettingsIcon /> },
 ];

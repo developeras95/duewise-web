@@ -27,6 +27,7 @@ const EditInvoicePage = lazy(() =>
 );
 
 const RemindersPage = lazy(() => import('./pages/reminders/RemindersPage').then((m) => ({ default: m.RemindersPage })));
+const RevenuePage = lazy(() => import('./pages/reports/RevenuePage').then((m) => ({ default: m.RevenuePage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 
 /** Every page of the app, inside the shared layout. */
@@ -53,6 +54,7 @@ export function App() {
           <Route path=":id" element={<ClientDetailPage />} />
           <Route path=":id/edit" element={<EditClientPage />} />
         </Route>
+        <Route path="revenue" element={<RevenuePage />} />
         <Route path="reminders" element={<RemindersPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />

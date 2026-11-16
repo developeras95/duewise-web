@@ -373,6 +373,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/revenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Revenue per month
+         * @description Money received per month and currency, with totals per currency. Finished months come from the stored report, refreshed nightly (see storedAsOf); the current month is always live.
+         */
+        get: operations["revenue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/revenue/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh the stored revenue report now
+         * @description Recomputes every finished month from the payments, as the nightly job does. Use after recording payments for a past month. Takes about a second per few million payments.
+         */
+        post: operations["refresh"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -891,6 +931,7 @@ export interface components {
             size?: number;
             /**
              * Format: int64
+             * @description Number of matching items; an estimate when totalExact is false
              * @example 57
              */
             totalElements?: number;
@@ -899,6 +940,11 @@ export interface components {
              * @example 3
              */
             totalPages?: number;
+            /**
+             * @description False when totalElements is PostgreSQL's estimate rather than a count: for very large unfiltered lists, where counting every row would cost more than the page itself
+             * @example true
+             */
+            totalExact?: boolean;
         };
         ReminderLogEntry: {
             /** Format: int64 */
@@ -976,6 +1022,7 @@ export interface components {
             size?: number;
             /**
              * Format: int64
+             * @description Number of matching items; an estimate when totalExact is false
              * @example 57
              */
             totalElements?: number;
@@ -984,6 +1031,11 @@ export interface components {
              * @example 3
              */
             totalPages?: number;
+            /**
+             * @description False when totalElements is PostgreSQL's estimate rather than a count: for very large unfiltered lists, where counting every row would cost more than the page itself
+             * @example true
+             */
+            totalExact?: boolean;
         };
         PageResponseClient: {
             content?: components["schemas"]["Client"][];
@@ -1000,6 +1052,7 @@ export interface components {
             size?: number;
             /**
              * Format: int64
+             * @description Number of matching items; an estimate when totalExact is false
              * @example 57
              */
             totalElements?: number;
@@ -1008,6 +1061,11 @@ export interface components {
              * @example 3
              */
             totalPages?: number;
+            /**
+             * @description False when totalElements is PostgreSQL's estimate rather than a count: for very large unfiltered lists, where counting every row would cost more than the page itself
+             * @example true
+             */
+            totalExact?: boolean;
         };
         /** @description Outstanding money in one currency, split by how late it is */
         CurrencyBalance: {
@@ -1084,6 +1142,70 @@ export interface components {
             sentTo?: string;
             /** Format: date-time */
             sentAt?: string;
+        };
+        /** @description Money received in one month in one currency. */
+        RevenueMonth: {
+            /** @example 2026-10 */
+            month?: string;
+            /** @example INR */
+            currencyCode?: string;
+            /**
+             * Format: int64
+             * @description Number of payments
+             * @example 42
+             */
+            payments?: number;
+            /**
+             * @description Sum of those payments, in the currency
+             * @example 1250000
+             */
+            received?: number;
+        };
+        /** @description Money received over the whole report period in one currency. */
+        RevenueTotal: {
+            /** @example INR */
+            currencyCode?: string;
+            /**
+             * Format: int64
+             * @example 512
+             */
+            payments?: number;
+            /** @example 15430000 */
+            received?: number;
+        };
+        /** @description Money received per month and currency. Amounts in different currencies are never added together. Finished months come from the stored report (see storedAsOf); the current month, when it is in the period, is added up live from the payments (see liveMonth). */
+        RevenueReport: {
+            /** @example 2025-11 */
+            from?: string;
+            /** @example 2026-10 */
+            to?: string;
+            /** @description One entry per month and currency that received payments, oldest month first */
+            months?: components["schemas"]["RevenueMonth"][];
+            /** @description Totals for the whole period, one per currency */
+            totals?: components["schemas"]["RevenueTotal"][];
+            /**
+             * Format: date-time
+             * @description When the stored months were last brought up to date. Payments recorded later for a finished month appear after the next refresh.
+             */
+            storedAsOf?: string;
+            /**
+             * @description The month added up live from the payments, so always up to date; null when the period ends before the current month
+             * @example 2026-11
+             */
+            liveMonth?: string;
+        };
+        RevenueRefresh: {
+            /**
+             * Format: date-time
+             * @description The stored report now includes every payment recorded before this moment
+             */
+            refreshedAt?: string;
+            /**
+             * Format: int64
+             * @description How long the refresh took
+             * @example 1330
+             */
+            tookMs?: number;
         };
     };
     responses: never;
@@ -1763,6 +1885,57 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["InvoiceEmail"];
+                };
+            };
+        };
+    };
+    revenue: {
+        parameters: {
+            query?: {
+                /**
+                 * @description First month, e.g. 2025-11. Default: eleven months before 'to'.
+                 * @example 2025-11
+                 */
+                from?: string;
+                /**
+                 * @description Last month, included, e.g. 2026-10. Default: the current month.
+                 * @example 2026-10
+                 */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RevenueReport"];
+                };
+            };
+        };
+    };
+    refresh: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RevenueRefresh"];
                 };
             };
         };

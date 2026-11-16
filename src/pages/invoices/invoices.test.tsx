@@ -140,6 +140,27 @@ describe('invoice list', () => {
   });
 });
 
+describe('invoice count', () => {
+  it('says "about" when Duewise estimated the total of millions of invoices', async () => {
+    server.use(
+      http.get('*/api/v1/invoices', () =>
+        HttpResponse.json({
+          content: [],
+          page: 0,
+          size: 20,
+          totalElements: 4993865,
+          totalPages: 249694,
+          totalExact: false,
+        }),
+      ),
+    );
+
+    renderRoutes('/invoices');
+
+    expect(await screen.findByText('about 4,994,000 invoices')).toBeInTheDocument();
+  });
+});
+
 describe('new invoice', () => {
   it("starts from the client's currency and adds up the lines as you type", async () => {
     server.use(http.get('*/api/v1/clients/1', () => HttpResponse.json(aClient())));

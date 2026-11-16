@@ -19,6 +19,7 @@ statements with aging, and overdue reminders.
 | **Clients**        | Search as you type; add and edit with Duewise's validation shown on each field; each client's statement: balances per currency split into aging buckets, and every open invoice.                                                                                                                          |
 | **Invoices**       | Filter by status, client, issue dates and overdue, all kept in the address. Drafts with line items and live totals, rounded exactly as Duewise rounds. Send and email to the client with the PDF attached, void with a reason, delete drafts, record full or part payments, preview and download the PDF. |
 | **Reminders**      | Turn client reminders and the daily summary on or off, choose the reminder days and summary recipients, see every reminder sent, run the job on demand.                                                                                                                                                   |
+| **Revenue**        | Money received per month for each currency, as a chart and a table, for the last 12 months, this or last year, or any months; says what is live and what is as of Duewise's nightly refresh.                                                                                                              |
 | **Settings**       | Currencies and payment methods.                                                                                                                                                                                                                                                                           |
 | **Dashboard**      | Overdue invoices oldest first, drafts to send, latest reminder, system status.                                                                                                                                                                                                                            |
 | **Request timing** | A badge in the top bar shows how long each call to Duewise took, as the browser saw it; click for the last 30.                                                                                                                                                                                            |
@@ -29,6 +30,9 @@ Light and dark mode, and it works on phones.
   <tr>
     <td><img src="docs/images/invoices.png" alt="Invoice list filtered to overdue invoices" /></td>
     <td><img src="docs/images/invoice.png" alt="An invoice with lines, totals and a part payment" /></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/images/revenue.png" alt="The revenue report: money received per month for each currency, from 5 million invoices" /></td>
   </tr>
   <tr>
     <td colspan="2"><img src="docs/images/statement-dark.png" alt="A client's statement in dark mode, with aging buckets per currency" /></td>
@@ -74,7 +78,9 @@ The [performance study](https://github.com/developeras95/duewise-postgres-perfor
 PostgreSQL with 5 million invoices on port 5433. `.env.example` has the lines that point this app at
 it, including the one that switches off the daily reminder job, which would otherwise try to remind
 every one of its ~590,000 overdue invoices at once. With the request-time badge, the study's slow
-queries and their fixes are visible in the screens that use them.
+queries and their fixes are visible in the screens that use them: Duewise 1.2.0 carries the study's
+indexes, so the Invoices screen opens in milliseconds instead of seconds, and its total reads
+"about 4,994,000 invoices" because Duewise estimates it rather than counting 5 million rows.
 
 ## Develop
 
